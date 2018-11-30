@@ -1,0 +1,55 @@
+---
+title: "Cards Analysis"
+author: "Eidan"
+date: "November 30, 2018"
+output: pdf_document
+---
+
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r dataAndPackages}
+library(tidyverse)
+library(kableExtra)
+cards <- read_csv("../Data/cards.csv") %>%
+  filter(!is.na(cost))
+```
+
+## Cards
+
+Hearthstone revolves around a set of roughly 1700 cards that can be collected by players, put into decks, and then used in gameplay. Cards are broadly divided into four types; in descending order of frequency: Minions, Spells, Weapons, and Heroes. Cards may belong to one of nine classes or be neutral and playable by any class.
+
+### Minions
+
+Minions are characters that may be placed on the game board. Generally they are used to threaten the opponent's hero or to defend against the opponent's minions. The most basic attributes of a minion are its cost to play, attack, and health. Minions may also have certain mechanics that alter their behavior in-game.
+
+
+```{r minions-plots}
+cards %>% 
+  filter(type == "MINION") %>%
+  ggplot(aes(x = health, y = attack, color = cost)) + 
+  geom_jitter(alpha = 0.5) + 
+  geom_smooth() +
+  theme_minimal() +
+  scale_color_viridis_c()
+```
+
+### Spells
+
+### Weapons
+
+### Heroes
+
+## Appendix
+
+I. Number of cards by type and class.
+
+```{r cardDistribution}
+cards %>%
+  group_by(type, cardClass) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  kable()
+```
+
