@@ -10,6 +10,7 @@ ui <- dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem("Minion Explorer", tabName = "MinionExplorer", icon = icon("paw")),
+      menuItem("Spell Explorer", tabName = "SpellExplorer", icon = icon("book")),
       menuItem("Deck Explorer", tabName = "Deck Explorer", icon = icon("bars"))
     )
   ),
@@ -18,6 +19,8 @@ ui <- dashboardPage(
       tabItem(tabName = "MinionExplorer",
                box(plotOutput("minionPlot", height = 500))
       ),
+      tabItem(tabName = "SpellExplorer",
+              h2("Content")),
       tabItem(tabName = "Deck Explorer",
               h2("Content"))
     )
