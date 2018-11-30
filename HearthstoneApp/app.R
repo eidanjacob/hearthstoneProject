@@ -3,11 +3,12 @@ library(shinydashboard)
 library(tidyverse)
 
 cards <- read_csv("../Data/cards.csv") %>% 
-  filter(!is.na(cost))
+  filter(!is.na(cost)) %>%
+  select(-starts_with("collection"))
 head(cards)
 
 hsClasses = c("Druid", "Hunter", "Mage", "Paladin", "Priest", "Rogue", "Shaman", "Warlock", "Warrior")
-hsMechanics = names(cards)[15:66]
+hsMechanics = names(cards)[15:ncol(cards)]
 
 ui <- dashboardPage(
   
@@ -22,27 +23,45 @@ ui <- dashboardPage(
   dashboardBody(
     tabItems(
       tabItem(tabName = "MinionExplorer",
-              # Output plot
-              box(
-                h2("Plot of Something"),
-                plotOutput("minionPlot")),
-              # Controls
-              box(
-                h2("Controls"),
-                # 2-value slider for card cost
-                sliderInput(inputId = "minionCostRange",
-                            label = "Filter: Minion Costs",
-                            min = 0, max = max(cards$cost),
-                            value = c(0,10),
-                            step = 1),
-                checkboxGroupInput(inputId = "minionClass",
-                                   label = "Filter: Minion Class",
-                                   choices = hsClasses, selected = hsClasses),
-                selectInput(inputId = "minionMechanics",
-                            label = "Filter: Minion Mechanics",
-                            choices = hsMechanics,
-                            multiple = TRUE)
-                
+              fluidRow(
+                # Output plot
+                box(
+                  h2("Plot of Something"),
+                  plotOutput("minionPlot")
+                ),
+                box(
+                  h2("Controls"),
+                  # 2-value slider for card cost
+                  sliderInput(inputId = "minionCostRange",
+                              label = "Costs",
+                              min = 0, max = max(cards$cost),
+                              value = c(0,10),
+                              step = 1),
+                  # Selection of Mechanics
+                  selectInput(inputId = "minionMechanics",
+                              label = "Mechanics",
+                              choices = hsMechanics,
+                              multiple = TRUE),
+                  # Axes
+                  selectInput(inputId = "minionX",
+                              label = "X Axis",
+                              choices = c("Attack", "Cost", "Health"),
+                              selected = "Health"),
+                  selectInput(inputId = "minionY",
+                              label = "Y Axis",
+                              choices = c("Attack", "Cost", "Health", "Count"),
+                              selected = "Attack"),
+                  # Coloring
+                  selectInput(inputId = "minionColor",
+                              label = "Coloring",
+                              choices = c("Attack", "Class", "Cost", "Health", "None"),
+                              selected = "Cost"),
+                  # Faceting
+                  selectInput(inputId = "minionFacet",
+                              label = "Faceting",
+                              choices = c("Class", "Mechanic", "Parity", "None"),
+                              selected = "None")
+                )
               )
       ),
       tabItem(tabName = "SpellExplorer",
