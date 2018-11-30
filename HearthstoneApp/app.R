@@ -2,7 +2,12 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 
-cards <- read_csv("../Data/cards.csv")
+cards <- read_csv("../Data/cards.csv") %>% 
+  filter(!is.na(cost))
+head(cards)
+
+hsClasses = c("Druid", "Hunter", "Mage", "Paladin", "Priest", "Rogue", "Shaman", "Warlock", "Warrior")
+hsMechanics = names(cards)[15:66]
 
 ui <- dashboardPage(
   
@@ -17,7 +22,28 @@ ui <- dashboardPage(
   dashboardBody(
     tabItems(
       tabItem(tabName = "MinionExplorer",
-               box(plotOutput("minionPlot", height = 500))
+              # Output plot
+              box(
+                h2("Plot of Something"),
+                plotOutput("minionPlot")),
+              # Controls
+              box(
+                h2("Controls"),
+                # 2-value slider for card cost
+                sliderInput(inputId = "minionCostRange",
+                            label = "Filter: Minion Costs",
+                            min = 0, max = max(cards$cost),
+                            value = c(0,10),
+                            step = 1),
+                checkboxGroupInput(inputId = "minionClass",
+                                   label = "Filter: Minion Class",
+                                   choices = hsClasses, selected = hsClasses),
+                selectInput(inputId = "minionMechanics",
+                            label = "Filter: Minion Mechanics",
+                            choices = hsMechanics,
+                            multiple = TRUE)
+                
+              )
       ),
       tabItem(tabName = "SpellExplorer",
               h2("Content")),
