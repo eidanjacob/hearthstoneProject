@@ -138,7 +138,7 @@ server <- function(input, output) {
           p <- p + aes(y = cost)
           
         }
-        
+
       }
       
       # Make scatterplot(s)
