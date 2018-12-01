@@ -1,6 +1,7 @@
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
+library(shinyBS)
 
 cards <- read_csv("../Data/cards.csv") %>% 
   filter(!is.na(cost)) %>%
@@ -27,9 +28,8 @@ ui <- dashboardPage(
                 # Output plot
                 box(
                   h2("Plot of Something"),
-                  plotOutput("minionPlot")
-                ),
-                box(
+                  plotOutput("minionPlot",
+                             hover = hoverOpts(id = "plot_hover")),
                   h2("Controls"),
                   # 2-value slider for card cost
                   sliderInput(inputId = "minionCostRange",
@@ -61,6 +61,9 @@ ui <- dashboardPage(
                               label = "Faceting",
                               choices = c("Class", "Mechanic", "Parity", "None"),
                               selected = "None")
+                ),
+                box(
+                  imageOutput("minionImage")
                 )
               )
       ),
@@ -94,62 +97,54 @@ server <- function(input, output) {
   })
   
   minionPlotter <- reactive({
-    
     p <- minionsToPlot() %>% ggplot()
     
     # X axis
     if(input$minionX == "Attack"){
-      
       p <- p + aes(x = attack)
-      
     } else {
-      
       if(input$minionX == "Health"){
-        
         p <- p + aes(x = health)
-        
       } else {
-        
         p <- p + aes(x = cost)
-        
       }
     }
     
     # Y axis
     if(input$minionY == "Count"){
-      
       # Make histogram(s)
       p <- p + geom_histogram(binwidth = 1)
-      
     } else {
-      
       if(input$minionY == "Attack"){
-        
         p <- p + aes(y = attack)
-        
       } else {
-        
         if(input$minionY == "Health"){
-          
           p <- p + aes(y = health)
-          
         } else {
-          
           p <- p + aes(y = cost)
-          
         }
-
       }
-      
       # Make scatterplot(s)
       p <- p + geom_jitter()
     }
-    
     p
-    
   })
   
   output$minionPlot <- renderPlot(minionPlotter())
+  
+  dbfId <- reactive({
+    req(input$plot_hover)
+    nearby <- nearPoints(df = minionsToPlot(),
+                         coordinfo = input$plot_hover)
+    a <- nearby$dbfId[1]
+    as.character(a)
+  })
+  
+  output$minionImage <- renderImage({
+    list( src = paste0("../hearthstone-card-images/rel/", dbfId(), ".png"),
+          alt = "Hover over a minon to view it.")
+  })
+  
 }
 
 shinyApp(ui = ui, server = server)
