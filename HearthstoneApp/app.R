@@ -75,15 +75,18 @@ ui <- dashboardPage(
 server <- function(input, output) {
   
   minionsToPlot <- reactive({
+    
     m <- cards %>%
       filter(type == "MINION") %>%
       filter(cost >= input$minionCostRange[1]) %>%
       filter(cost <= input$minionCostRange[2])
     
     if(!is.null(input$minionMechanics)){
+      
       for(mechanic in input$minionMechanics){
         m <- m[unlist(m[,mechanic]),]
       }
+      
     }
     
     m <- as.data.frame(m)
@@ -92,17 +95,58 @@ server <- function(input, output) {
   
   minionPlotter <- reactive({
     
-    if(input$minionY == "Count"){
-      # Make histogram(s)
-      p <- minionsToPlot() %>%
-          ggplot(aes(x=health)) + geom_histogram(binwidth = 1)
+    p <- minionsToPlot() %>% ggplot()
+    
+    # X axis
+    if(input$minionX == "Attack"){
+      
+      p <- p + aes(x = attack)
+      
     } else {
+      
+      if(input$minionX == "Health"){
+        
+        p <- p + aes(x = health)
+        
+      } else {
+        
+        p <- p + aes(x = cost)
+        
+      }
+    }
+    
+    # Y axis
+    if(input$minionY == "Count"){
+      
+      # Make histogram(s)
+      p <- p + geom_histogram(binwidth = 1)
+      
+    } else {
+      
+      if(input$minionY == "Attack"){
+        
+        p <- p + aes(y = attack)
+        
+      } else {
+        
+        if(input$minionY == "Health"){
+          
+          p <- p + aes(y = health)
+          
+        } else {
+          
+          p <- p + aes(y = cost)
+          
+        }
+        
+      }
+      
       # Make scatterplot(s)
-      p <- minionsToPlot() %>%
-          ggplot(aes(x= health, y = attack, color = cost)) + geom_jitter()
+      p <- p + geom_jitter()
     }
     
     p
+    
   })
   
   output$minionPlot <- renderPlot(minionPlotter())
