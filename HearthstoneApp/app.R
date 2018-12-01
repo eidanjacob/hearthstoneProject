@@ -74,15 +74,38 @@ ui <- dashboardPage(
 
 server <- function(input, output) {
   
-  output$minionPlot <- renderPlot(
-    cards %>% 
+  minionsToPlot <- reactive({
+    m <- cards %>%
       filter(type == "MINION") %>%
-      ggplot(aes(x = health, y = attack, color = cost)) + 
-      geom_jitter(alpha = 0.5) + 
-      geom_smooth() +
-      theme_minimal() +
-      scale_color_viridis_c()
-  )
+      filter(cost >= input$minionCostRange[1]) %>%
+      filter(cost <= input$minionCostRange[2])
+    
+    if(!is.null(input$minionMechanics)){
+      for(mechanic in input$minionMechanics){
+        m <- m[unlist(m[,mechanic]),]
+      }
+    }
+    
+    m <- as.data.frame(m)
+    m
+  })
+  
+  minionPlotter <- reactive({
+    
+    if(input$minionY == "Count"){
+      # Make histogram(s)
+      p <- minionsToPlot() %>%
+          ggplot(aes(x=health)) + geom_histogram(binwidth = 1)
+    } else {
+      # Make scatterplot(s)
+      p <- minionsToPlot() %>%
+          ggplot(aes(x= health, y = attack, color = cost)) + geom_jitter()
+    }
+    
+    p
+  })
+  
+  output$minionPlot <- renderPlot(minionPlotter())
 }
 
 shinyApp(ui = ui, server = server)
