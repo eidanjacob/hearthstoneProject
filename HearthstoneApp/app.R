@@ -7,7 +7,9 @@ library(foreign)
 cards <- read_csv("../Data/cards.csv") %>% 
   filter(!is.na(cost)) %>%
   select(-starts_with("collection")) %>%
-  mutate_at(vars(name), function(x){gsub('[^ -~]', '', x)})
+  mutate_at(vars(name), function(x){gsub('[^ -~]', '', x)}) %>%
+  mutate(Parity = case_when(cost %% 2 == 0 ~ "Even",
+                            cost %% 2 == 1 ~ "Odd"))
 
 minions <- cards %>% filter(type == "MINION")
 
@@ -61,7 +63,7 @@ ui <- dashboardPage(
                   # Faceting
                   selectInput(inputId = "minionFacet",
                               label = "Faceting",
-                              choices = c("Class", "Mechanic", "Parity", "None"),
+                              choices = c("Class", "Parity", "None"),
                               selected = "None")
                 ),
                 box(
@@ -115,6 +117,32 @@ server <- function(input, output, session) {
       } else {
         p <- p + aes(x = cost)
       }
+    }
+    
+    # Coloring
+    if(input$minionColor == "Attack"){
+      p <- p + aes(color = attack)
+    } else {
+      if(input$minionColor == "Health"){
+        p <- p + aes(color = health)
+      } else {
+        if(input$minionColor == "Cost"){
+          p <- p + aes(color = cost)
+        } else {
+          if(input$minionColor == "Class"){
+            p <- p + aes(color = cardClass)
+          }
+        }
+      }
+    }
+    
+    # Faceting
+    if(input$minionFacet == "Class"){
+      p <- p + facet_wrap( ~ cardClass, ncol = 3)
+    } else {
+      if(input$minionFacet == "Parity"){
+        p <- p + facet_wrap(~ Parity, ncol = 2)
+      } 
     }
     
     # Y axis
