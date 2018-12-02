@@ -2,11 +2,14 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(shinyBS)
+library(foreign)
 
 cards <- read_csv("../Data/cards.csv") %>% 
   filter(!is.na(cost)) %>%
-  select(-starts_with("collection"))
-head(cards)
+  select(-starts_with("collection")) %>%
+  mutate_at(vars(name), function(x){gsub('[^ -~]', '', x)})
+
+minions <- cards %>% filter(type == "MINION")
 
 hsClasses = c("Druid", "Hunter", "Mage", "Paladin", "Priest", "Rogue", "Shaman", "Warlock", "Warrior")
 hsMechanics = names(cards)[15:ncol(cards)]
@@ -27,7 +30,6 @@ ui <- dashboardPage(
               fluidRow(
                 # Output plot
                 box(
-                  h2("Plot of Something"),
                   plotOutput("minionPlot",
                              hover = hoverOpts(id = "plot_hover")),
                   h2("Controls"),
@@ -63,6 +65,9 @@ ui <- dashboardPage(
                               selected = "None")
                 ),
                 box(
+                  selectInput(inputId = "Viewer",
+                              label = "View a card",
+                              choices = sort(minions$name)),
                   imageOutput("minionImage")
                 )
               )
@@ -75,12 +80,11 @@ ui <- dashboardPage(
   )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   minionsToPlot <- reactive({
     
-    m <- cards %>%
-      filter(type == "MINION") %>%
+    m <- minions %>%
       filter(cost >= input$minionCostRange[1]) %>%
       filter(cost <= input$minionCostRange[2])
     
@@ -93,6 +97,9 @@ server <- function(input, output) {
     }
     
     m <- as.data.frame(m)
+    updateSelectInput(session,
+                      "Viewer",
+                      choices = sort(m$name))
     m
   })
   
@@ -125,25 +132,18 @@ server <- function(input, output) {
         }
       }
       # Make scatterplot(s)
-      p <- p + geom_jitter()
+      p <- p + geom_count()
     }
     p
   })
   
   output$minionPlot <- renderPlot(minionPlotter())
   
-  dbfId <- reactive({
-    req(input$plot_hover)
-    nearby <- nearPoints(df = minionsToPlot(),
-                         coordinfo = input$plot_hover)
-    a <- nearby$dbfId[1]
-    as.character(a)
-  })
-  
   output$minionImage <- renderImage({
-    list( src = paste0("../hearthstone-card-images/rel/", dbfId(), ".png"),
-          alt = "Hover over a minon to view it.")
-  })
+    dbfId <- minions$dbfId[minions$name == input$Viewer]
+    list(src = paste0("../hearthstone-card-images/rel/", dbfId, ".png"))
+  },
+  deleteFile = FALSE)
   
 }
 
