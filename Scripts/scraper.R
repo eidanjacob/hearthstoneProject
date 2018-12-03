@@ -7,7 +7,6 @@ library(dplyr)
 library(readr)
 library(stringr)
 library(lubridate)
-library(jsonlite)
 library(purrr)
 
 # Data on Individual Cards
