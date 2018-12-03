@@ -22,8 +22,7 @@ ui <- dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem("Minion Explorer", tabName = "MinionExplorer", icon = icon("paw")),
-      menuItem("Spell Explorer", tabName = "SpellExplorer", icon = icon("book")),
-      menuItem("Deck Explorer", tabName = "Deck Explorer", icon = icon("bars"))
+      menuItem("Deck Explorer", tabName = "Deck Explorer", icon = icon("book"))
     )
   ),
   dashboardBody(
@@ -32,6 +31,7 @@ ui <- dashboardPage(
               fluidRow(
                 # Output plot
                 box(
+                  h2("Minion Explorer"),
                   plotOutput("minionPlot",
                              hover = hoverOpts(id = "plot_hover")),
                   h2("Controls"),
@@ -67,15 +67,14 @@ ui <- dashboardPage(
                               selected = "None")
                 ),
                 box(
+                  h2("Card Viewer"),
                   selectInput(inputId = "Viewer",
-                              label = "View a card",
+                              label = "Select a card to View",
                               choices = sort(minions$name)),
                   imageOutput("minionImage")
                 )
               )
       ),
-      tabItem(tabName = "SpellExplorer",
-              h2("Content")),
       tabItem(tabName = "Deck Explorer",
               h2("Content"))
     )
