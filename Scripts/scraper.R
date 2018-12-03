@@ -11,18 +11,19 @@ library(purrr)
 
 # Data on Individual Cards
 
-cards <- read_csv("../Data/cards.csv")
-noSpaceCardNames <- gsub(" ", "", cards$name)
-nPages <- 1
+cards <- read_csv("./Data/cards.csv",
+                  locale = locale(encoding = "latin1"))
+noSpaceCardNames <- gsub("<U+663C><U+3E31>", "n", gsub(" ", "", cards$name))
+nPages <- 2
 
 decks <- data.frame ( matrix (data = 0, ncol = 9 + length(noSpaceCardNames)), stringsAsFactors = FALSE)
 names(decks) <- c("name", "author", "url", "type", "class", "rate", "view", "comment", "date", noSpaceCardNames)
 decks[1, 1:9] <- "zero"
-source("./hearthpwn_scrape_deck.R")
-url <- "https://www.hearthpwn.com/decks?filter-unreleased-cards=f&"
+source("./Scripts/hearthpwn_scrape_deck.R")
+url <- "https://www.hearthpwn.com/decks"
 
 for(i in 1:nPages){
-  page <- read_html(url)
+  page <- read_html(paste0(url, "?page=", i))
   
   # Deck Names
   info <- page %>%
@@ -100,6 +101,5 @@ for(relUrl in decks$url[-1]){
     decks[decks$url == relUrl, card] <- deckList[1,card]
   }
 }
-
-decks <- decks %>% 
-  mutate_if(is.numeric, funs(replace(., is.na(.), 0)))
+decks <- decks[-1,]
+decks[,10:1819][is.na(decks[,10:1819])] <- 0

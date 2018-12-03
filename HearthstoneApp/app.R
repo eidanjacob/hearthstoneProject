@@ -4,7 +4,8 @@ library(tidyverse)
 library(shinyBS)
 library(foreign)
 
-cards <- read_csv("../Data/cards.csv") %>% 
+cards <- read_csv("../Data/cards.csv",
+                  locale = locale(encoding = "latin1")) %>% 
   filter(!is.na(cost)) %>%
   select(-starts_with("collection")) %>%
   mutate_at(vars(name), function(x){gsub('[^ -~]', '', x)}) %>%
