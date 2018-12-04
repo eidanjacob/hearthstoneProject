@@ -14,7 +14,7 @@ library(purrr)
 cards <- read_csv("./Data/cards.csv",
                   locale = locale(encoding = "latin1"))
 noSpaceCardNames <- gsub("<U+663C><U+3E31>", "n", gsub(" ", "", cards$name))
-nPages <- 2
+nPages <- 1000
 
 decks <- data.frame ( matrix (data = 0, ncol = 9 + length(noSpaceCardNames)), stringsAsFactors = FALSE)
 names(decks) <- c("name", "author", "url", "type", "class", "rate", "view", "comment", "date", noSpaceCardNames)
@@ -23,7 +23,8 @@ source("./Scripts/hearthpwn_scrape_deck.R")
 url <- "https://www.hearthpwn.com/decks"
 
 for(i in 1:nPages){
-  page <- read_html(paste0(url, "?page=", i))
+  download.file(paste0(url, "?page=", i), destfile = "scrapedpage.html", quiet = TRUE)
+  page <- read_html("scrapedpage.html")
   
   # Deck Names
   info <- page %>%
@@ -92,6 +93,8 @@ for(i in 1:nPages){
     stringsAsFactors = FALSE
   ))
   
+  Sys.sleep(5)
+  
 }
 
 for(relUrl in decks$url[-1]){
@@ -100,6 +103,8 @@ for(relUrl in decks$url[-1]){
   for(card in names(deckList)){
     decks[decks$url == relUrl, card] <- deckList[1,card]
   }
+  Sys.sleep(5)
 }
 decks <- decks[-1,]
-decks[,10:1819][is.na(decks[,10:1819])] <- 0
+decks[,10:ncol(decks)][is.na(decks[,10:ncol(decks)])] <- 0
+write.csv(decks, file = "./Data/hearthpwn.csv", row.names = FALSE)

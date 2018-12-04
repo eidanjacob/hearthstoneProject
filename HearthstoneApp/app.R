@@ -1,5 +1,6 @@
 library(shiny)
 library(shinydashboard)
+library(flexdashboard)
 library(tidyverse)
 library(shinyBS)
 library(foreign)
@@ -14,7 +15,9 @@ cards <- read_csv("../Data/cards.csv",
 
 minions <- cards %>% filter(type == "MINION")
 
-hsClasses = c("Druid", "Hunter", "Mage", "Paladin", "Priest", "Rogue", "Shaman", "Warlock", "Warrior")
+pwn <- read_csv("../Data/hearthpwn.csv",
+                locale = locale(encoding = "latin1"))
+
 hsMechanics = names(cards)[15:ncol(cards)]
 
 ui <- dashboardPage(
@@ -23,7 +26,7 @@ ui <- dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem("Minion Explorer", tabName = "MinionExplorer", icon = icon("paw")),
-      menuItem("Deck Explorer", tabName = "Deck Explorer", icon = icon("book"))
+      menuItem("Card Relationships", tabName = "CardRelationships", icon = icon("book"))
     )
   ),
   dashboardBody(
@@ -76,13 +79,23 @@ ui <- dashboardPage(
                 )
               )
       ),
-      tabItem(tabName = "Deck Explorer",
-              h2("Content"))
+      tabItem(tabName = "CardRelationships",
+              fluidRow(
+                box(
+                  h2("Controls"),
+                  gaugeOutput("gauge"),
+                  numericInput("decksThresh", "Show cards in at least this many decks:",
+                               10, min = 0, max = 50, step = 5)
+                )
+              )
+      )
     )
   )
 )
 
 server <- function(input, output, session) {
+  
+  ### Minion Explorer
   
   minionsToPlot <- reactive({
     
@@ -121,16 +134,16 @@ server <- function(input, output, session) {
     
     # Coloring
     if(input$minionColor == "Attack"){
-      p <- p + aes(color = attack)
+      p <- p + aes(color = attack) + scale_color_viridis_c()
     } else {
       if(input$minionColor == "Health"){
-        p <- p + aes(color = health)
+        p <- p + aes(color = health) + scale_color_viridis_c()
       } else {
         if(input$minionColor == "Cost"){
-          p <- p + aes(color = cost)
+          p <- p + aes(color = cost) + scale_color_viridis_c()
         } else {
           if(input$minionColor == "Class"){
-            p <- p + aes(color = cardClass)
+            p <- p + aes(color = cardClass) + scale_color_brewer(type = "qual", palette = "Set3")
           }
         }
       }
@@ -162,7 +175,7 @@ server <- function(input, output, session) {
       # Make scatterplot(s)
       p <- p + geom_count()
     }
-    p
+    p + theme_minimal()
   })
   
   output$minionPlot <- renderPlot(minionPlotter())
@@ -172,6 +185,22 @@ server <- function(input, output, session) {
     list(src = paste0("../hearthstone-card-images/rel/", dbfId, ".png"))
   },
   deleteFile = FALSE)
+  
+  ### Card Relationships
+  
+  cardsInNDecks <- reactive({
+    req(input$deckThresh)
+    
+  })
+  
+  output$gauge <- renderGauge({
+    p <- 50
+    gauge(p, 0, 100, 
+          sectors = gaugeSectors(success = c(50, 100), 
+                                 warning = c(25,49),
+                                 danger = c(0,24)),
+          symbol = "%")
+  })
   
 }
 
