@@ -24,4 +24,7 @@ for(i in 1:nrow(decksBool)){
   m[a[,1], a[,2]] <- m[a[,1], a[,2]] + 1
 }
 
+m <- as.data.frame(m) 
+names(m) <- names(decksCSV[,cardCols])
+
 write.csv(m, "./Data/adjTable.csv", row.names = FALSE)

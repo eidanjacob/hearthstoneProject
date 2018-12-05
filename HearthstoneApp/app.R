@@ -16,7 +16,17 @@ cards <- read_csv("../Data/cards.csv",
 minions <- cards %>% filter(type == "MINION")
 
 pwn <- read_csv("../Data/hearthpwn.csv",
-                locale = locale(encoding = "latin1"))
+               locale = locale(encoding = "latin1"))
+cardCols <- 10:ncol(pwn)
+decksNum <- pwn[,cardCols]
+sums <- rowSums(decksNum)
+pwn <- pwn[sums == 30,]
+names(pwn) <- gsub(" ", "", names(pwn))
+
+adjTable <- read_csv("../Data/adjTable.csv")
+ranking <- order(diag(as.matrix(adjTable)), decreasing = TRUE)
+rankedCardNames <- names(adjTable)[ranking]
+noSpaceCardNames <- gsub(" ", "", cards$name)
 
 hsMechanics = names(cards)[15:ncol(cards)]
 
@@ -83,9 +93,18 @@ ui <- dashboardPage(
               fluidRow(
                 box(
                   h2("Controls"),
-                  gaugeOutput("gauge"),
-                  numericInput("decksThresh", "Show cards in at least this many decks:",
-                               10, min = 0, max = 50, step = 5)
+                  h5("Percentage of cards included"),
+                  gaugeOutput("cardGauge"),
+                  h5("Percentage of Decks with at least one top Card"),
+                  gaugeOutput("deckGauge"),
+                  sliderInput("nCards", "Top N Cards",
+                               min = 10, max = nrow(cards), 100)
+                ),
+                box(
+                  h2("Associations"),
+                  plotOutput("cardAssoc"),
+                  h5("Top 10 Card Co-occurrences"),
+                  htmlOutput("top10pairs")
                 )
               )
       )
@@ -188,18 +207,54 @@ server <- function(input, output, session) {
   
   ### Card Relationships
   
-  cardsInNDecks <- reactive({
-    req(input$deckThresh)
-    
+  topNCards <- reactive({
+    req(input$nCards)
+    adjTable[ranking[1:input$nCards], ranking[1:input$nCards]]
   })
   
-  output$gauge <- renderGauge({
-    p <- 50
+  topNDecks <- reactive({
+    req(input$nCards)
+    includedCards <- rankedCardNames[1:input$nCards]
+    includedDecks <- apply(pwn, 1, function(deck){
+      any(deck[includedCards]>0)
+    })
+    pwn[includedDecks,]
+  })
+  
+  output$cardGauge <- renderGauge({
+    p <- round(nrow(topNCards()) / nrow(cards) * 100, 0)
     gauge(p, 0, 100, 
-          sectors = gaugeSectors(success = c(50, 100), 
-                                 warning = c(25,49),
-                                 danger = c(0,24)),
+          sectors = gaugeSectors(success = c(20, 100), 
+                                 warning = c(10,19),
+                                 danger = c(0,9)),
           symbol = "%")
+  })
+  
+  output$deckGauge <- renderGauge({
+    p <- round(nrow(topNDecks()) / nrow(pwn) * 100, 0)
+    gauge(p, 0, 100,
+          sectors = gaugeSectors(success = c(50,100),
+                                  warning = c(25,49),
+                                  danger = c(0,24)),
+          symbol = "%")
+  })
+  
+  output$cardAssoc <- renderPlot({
+    heatmap(as.matrix(t(topNCards())))
+  })
+  
+  output$top10pairs <- renderUI({
+    adjTable <- topNCards()
+    adjTable[row(adjTable) >= col(adjTable)] <- 0
+    top10index <- order(as.matrix(adjTable), decreasing = TRUE)[1:10]
+    pairsOutput <- ""
+    entries <- sapply(1:10, function(i){
+      nameIndices <- arrayInd(top10index[i], dim(adjTable))
+      n1 <- colnames(adjTable)[nameIndices][1]
+      n2 <- colnames(adjTable)[nameIndices][2]
+      paste0(i, ". ", n1, " and ", n2, ", ", as.matrix(adjTable)[top10index[i]])
+    })
+    HTML(paste0(entries, sep = "\n", collapse = "<br/>"))
   })
   
 }
