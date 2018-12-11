@@ -36,7 +36,8 @@ ui <- dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem("Minion Explorer", tabName = "MinionExplorer", icon = icon("paw")),
-      menuItem("Card Relationships", tabName = "CardRelationships", icon = icon("book"))
+      menuItem("Card Relationships", tabName = "CardRelationships", icon = icon("book")),
+      menuItem("Deck Archetypes", tabName = "DeckArchetypes", icon = icon("object-group"))
     )
   ),
   dashboardBody(
@@ -107,7 +108,18 @@ ui <- dashboardPage(
                   htmlOutput("top10pairs")
                 )
               )
-      )
+      ),
+      tabItem(tabName = "DeckArchetypes",
+              fluidRow(
+                box(
+                  h2("Controls"),
+                  numericInput("numArch", "Number of Archetypes", value = 20, 
+                               min = 1, max = nrow(pwn)),
+                  selectInput("cardToInclude", "Include only decks with these cards",
+                              choices = sort(cards$name),
+                              multiple = TRUE)
+                )
+              ))
     )
   )
 )
