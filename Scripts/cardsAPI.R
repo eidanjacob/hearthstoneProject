@@ -3,12 +3,10 @@
 library(jsonlite)
 library(dplyr)
 
-cards <- fromJSON("https://api.hearthstonejson.com/v1/27641/enUS/cards.collectible.json",
+cards <- fromJSON("https://api.hearthstonejson.com/v1/latest/enUS/cards.collectible.json",
                  simplifyDataFrame = TRUE,
                  flatten = TRUE) %>%
-  select(-classes, -entourage, -overload, -starts_with("playReq"), -artist, -collectible, -flavor, -id,
-         -howToEarn, -howToEarnGolden, -collectionText, -hideStats, -questReward, -elite, -targetingArrowText,
-         -multiClassGroup, -faction)
+  select(cardClass, cost, dbfId, name, rarity, referencedTags, set, text, type, attack, health, mechanics, race, durability, spellDamage)
 
 unique_mechanics <- 
   union(unique(unlist(cards$mechanics)), unique(unlist(cards$referencedTags)))
