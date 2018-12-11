@@ -2,6 +2,7 @@ library(shiny)
 library(shinydashboard)
 library(flexdashboard)
 library(tidyverse)
+library(tidytext)
 library(shinyBS)
 library(foreign)
 library(tm)
@@ -23,6 +24,7 @@ cardCols <- 2:ncol(pwn)
 pwn <- pwn[,cardCols]
 
 adjTable <- read_csv("../Data/adjTable.csv")
+rownames(adjTable) <- names(adjTable)
 ranking <- order(diag(as.matrix(adjTable)), decreasing = TRUE)
 rankedCardNames <- names(adjTable)[ranking]
 noSpaceCardNames <- gsub(" ", "", cards$name)
@@ -98,13 +100,18 @@ ui <- dashboardPage(
                   h5("Percentage of Decks with at least one top Card"),
                   gaugeOutput("deckGauge"),
                   sliderInput("nCards", "Top N Cards",
-                               min = 10, max = nrow(cards), 100)
+                               min = 10, max = nrow(cards), 50)
                 ),
                 box(
-                  h2("Associations"),
-                  plotOutput("cardAssoc"),
                   h5("Top 10 Card Co-occurrences"),
                   htmlOutput("top10pairs")
+                )
+              ),
+              fluidRow(
+                box(
+                  width = 12,
+                  h2("Associations"),
+                  plotOutput("cardAssoc", height = 1100, width = 1100)
                 )
               )
       ),
@@ -112,19 +119,29 @@ ui <- dashboardPage(
               fluidRow(
                 box(
                   h2("Controls"),
-                  numericInput("numArch", "Number of Archetypes", value = 3, 
-                               min = 2, max = nrow(pwn)),
+                  numericInput("numArch", "Number of Archetypes", value = 10, 
+                               min = 5, max = nrow(pwn)),
                   selectInput("cardToInclude", "Include only decks with these cards",
                               choices = rankedCardNames,
-                              multiple = TRUE),
+                              multiple = TRUE,
+                              selected = rankedCardNames[1]),
                   textOutput("decksForLDADiagnostic")
+                ),
+                box(
+                  h2("Number of decks by Archetype"),
+                  h5("Please allow a moment to load results"),
+                  div(style = "overflow-y: scroll", tableOutput("topicsCount"))
                 )
               ),
               fluidRow(
-                #box(
+                box(
                   h2("Deck Topic Modeling: Core Cards"),
-                  plotOutput("deckLDA", height = 500, width = 800)
-                #)
+                  h5("Please allow a moment to load results"),
+                  div(style = "overflow-x: scroll", tableOutput("deckLDA"))
+                ),
+                box(
+                  h2("Topic Modeling Diagnostics")
+                )
               ))
     )
   )
@@ -227,7 +244,9 @@ server <- function(input, output, session) {
   
   topNCards <- reactive({
     req(input$nCards)
-    adjTable[ranking[1:input$nCards], ranking[1:input$nCards]]
+    adjTableMatrix <- adjTable[ranking[1:input$nCards], ranking[1:input$nCards]] %>% as.matrix()
+    row.names(adjTableMatrix) <- rankedCardNames[1:input$nCards]
+    adjTableMatrix
   })
   
   topNDecks <- reactive({
@@ -258,7 +277,7 @@ server <- function(input, output, session) {
   })
   
   output$cardAssoc <- renderPlot({
-    heatmap(as.matrix(t(topNCards())))
+    heatmap(topNCards())
   })
   
   output$top10pairs <- renderUI({
@@ -288,27 +307,30 @@ server <- function(input, output, session) {
     paste("Using data from", nrow(decksForLDA()), "decks.")
   })
   
-  output$deckLDA <- renderPlot({
+  decksLDA <- reactive({
     documents <- apply(decksForLDA(), 1, function(x){
       includedCards = removePunctuation(names(pwn)[which(x>0)])
       a <- paste(includedCards, collapse = "--")
     })
     
     a <- DocumentTermMatrix(Corpus(VectorSource(documents)))
-    decksLDA <- LDA(a, k = input$numArch)
+    LDA(a, k = input$numArch)
+  })
+  
+  output$deckLDA <- renderTable({
+    top10 <- as.data.frame(terms(decksLDA(), 10))
+    names(top10) <- paste("Archetype", 1:length(names(top10)))
     
-    tidy(decksLDA) %>%
-      group_by(topic) %>%
-      top_n(5, beta) %>%
-      ungroup() %>%
-      arrange(topic, -beta) %>%
-      mutate(term = reorder(term, beta)) %>%
-      ggplot(aes(term, beta)) + 
-      geom_bar(stat = "identity") + 
-      facet_wrap(~ topic, scales = "free") + 
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      xlab("Card") + ylab("Beta")
-    
+    top10
+  })
+  
+  output$topicsCount <- renderTable({
+    topicsN <- decksLDA() %>%
+      topics %>%
+      table() %>%
+      tidy()
+    names(topicsN) <- c("Archetype", "Count")
+    topicsN
   })
   
 }
