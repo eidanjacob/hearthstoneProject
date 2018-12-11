@@ -4,6 +4,8 @@ library(flexdashboard)
 library(tidyverse)
 library(shinyBS)
 library(foreign)
+library(tm)
+library(topicmodels)
 
 cards <- read_csv("../Data/cards.csv",
                   locale = locale(encoding = "latin1")) %>% 
@@ -110,13 +112,19 @@ ui <- dashboardPage(
               fluidRow(
                 box(
                   h2("Controls"),
-                  numericInput("numArch", "Number of Archetypes", value = 20, 
+                  numericInput("numArch", "Number of Archetypes", value = 1, 
                                min = 1, max = nrow(pwn)),
                   selectInput("cardToInclude", "Include only decks with these cards",
                               choices = rankedCardNames,
                               multiple = TRUE),
                   textOutput("decksForLDADiagnostic")
                 )
+              ),
+              fluidRow(
+                #box(
+                  h2("Deck Topic Modeling: Core Cards"),
+                  plotOutput("deckLDA", height = 500, width = 800)
+                #)
               ))
     )
   )
@@ -278,6 +286,29 @@ server <- function(input, output, session) {
   
   output$decksForLDADiagnostic <- renderText({
     paste("Using data from", nrow(decksForLDA()), "decks.")
+  })
+  
+  output$deckLDA <- renderPlot({
+    documents <- apply(decksForLDA(), 1, function(x){
+      includedCards = removePunctuation(names(pwn)[which(x>0)])
+      a <- paste(includedCards, collapse = "--")
+    })
+    
+    a <- DocumentTermMatrix(Corpus(VectorSource(documents)))
+    decksLDA <- LDA(a, k = input$numArch)
+    
+    tidy(decksLDA) %>%
+      group_by(topic) %>%
+      top_n(5, beta) %>%
+      ungroup() %>%
+      arrange(topic, -beta) %>%
+      mutate(term = reorder(term, beta)) %>%
+      ggplot(aes(term, beta)) + 
+      geom_bar(stat = "identity") + 
+      facet_wrap(~ topic, scales = "free") + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Card") + ylab("Beta")
+    
   })
   
 }
