@@ -17,18 +17,15 @@ minions <- cards %>% filter(type == "MINION")
 
 pwn <- read_csv("../Data/5000.csv",
                locale = locale(encoding = "latin1"))
-cardCols <- 10:ncol(pwn)
-decksNum <- pwn[,cardCols]
-sums <- rowSums(decksNum)
-pwn <- pwn[sums == 30,]
-names(pwn) <- gsub(" ", "", names(pwn))
+cardCols <- 2:ncol(pwn)
+pwn <- pwn[,cardCols]
 
 adjTable <- read_csv("../Data/adjTable.csv")
 ranking <- order(diag(as.matrix(adjTable)), decreasing = TRUE)
 rankedCardNames <- names(adjTable)[ranking]
 noSpaceCardNames <- gsub(" ", "", cards$name)
 
-hsMechanics = names(cards)[15:ncol(cards)]
+hsMechanics = names(cards)[13:ncol(cards)]
 
 ui <- dashboardPage(
   
@@ -116,8 +113,9 @@ ui <- dashboardPage(
                   numericInput("numArch", "Number of Archetypes", value = 20, 
                                min = 1, max = nrow(pwn)),
                   selectInput("cardToInclude", "Include only decks with these cards",
-                              choices = sort(cards$name),
-                              multiple = TRUE)
+                              choices = rankedCardNames,
+                              multiple = TRUE),
+                  textOutput("decksForLDADiagnostic")
                 )
               ))
     )
@@ -267,6 +265,19 @@ server <- function(input, output, session) {
       paste0(i, ". ", n1, " and ", n2, ", ", as.matrix(adjTable)[top10index[i]])
     })
     HTML(paste0(entries, sep = "\n", collapse = "<br/>"))
+  })
+  
+  decksForLDA <- reactive({
+    if(is.null(input$cardToInclude)){
+      pwn
+    } else {
+      include <- apply(pwn, 1, function(x) { all(x[input$cardToInclude])})
+      pwn[include,]
+    }
+  })
+  
+  output$decksForLDADiagnostic <- renderText({
+    paste("Using data from", nrow(decksForLDA()), "decks.")
   })
   
 }
