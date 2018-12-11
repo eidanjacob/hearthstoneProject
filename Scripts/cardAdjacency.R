@@ -6,9 +6,9 @@
 library(gtools)
 library(tidyverse)
 
-deckDataPath <- "./Data/hearthpwn.csv"
+deckDataPath <- "./Data/5000.csv"
 decksCSV <- read_csv(deckDataPath, locale = locale(encoding = "latin1"))
-cardCols <- 10:ncol(decksCSV)
+cardCols <- 2:ncol(decksCSV)
 decksNum <- decksCSV[,cardCols]
 sums <- rowSums(decksNum)
 decksNum <- decksNum[sums == 30,]

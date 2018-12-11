@@ -15,7 +15,7 @@ cards <- read_csv("../Data/cards.csv",
 
 minions <- cards %>% filter(type == "MINION")
 
-pwn <- read_csv("../Data/hearthpwn.csv",
+pwn <- read_csv("../Data/5000.csv",
                locale = locale(encoding = "latin1"))
 cardCols <- 10:ncol(pwn)
 decksNum <- pwn[,cardCols]
