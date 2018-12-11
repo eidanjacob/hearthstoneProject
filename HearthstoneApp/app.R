@@ -112,8 +112,8 @@ ui <- dashboardPage(
               fluidRow(
                 box(
                   h2("Controls"),
-                  numericInput("numArch", "Number of Archetypes", value = 1, 
-                               min = 1, max = nrow(pwn)),
+                  numericInput("numArch", "Number of Archetypes", value = 3, 
+                               min = 2, max = nrow(pwn)),
                   selectInput("cardToInclude", "Include only decks with these cards",
                               choices = rankedCardNames,
                               multiple = TRUE),
