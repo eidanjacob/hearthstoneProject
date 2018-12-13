@@ -138,9 +138,6 @@ ui <- dashboardPage(
                   h2("Deck Topic Modeling: Core Cards"),
                   h5("Please allow a moment to load results"),
                   div(style = "overflow-x: scroll", tableOutput("deckLDA"))
-                ),
-                box(
-                  h2("Topic Modeling Diagnostics")
                 )
               ))
     )
